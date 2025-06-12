@@ -57,8 +57,17 @@ python gitwatch.py
 - Set the local path for the repo (default: current directory).
 - Optionally, specify a post-pull command (e.g., `npm run build`).
 
-### 2. Service Mode (Continuous Monitoring)
-After setup, start the watcher in service mode:
+### 2. Testing Mode (Verify Setup)
+Before running as a service, you can verify your configuration and environment:
+```bash
+python gitwatch.py --mode testing
+```
+- This mode checks your configuration, verifies GitHub access, fetches the latest commit, simulates a git pull (dry-run), and simulates the post-pull command (without executing it).
+- All results and any errors are printed and logged to `gitwatch.log`.
+- Use this mode to ensure everything is set up correctly before relying on AutoPull as a service.
+
+### 3. Service Mode (Continuous Monitoring)
+After setup and testing, start the watcher in service mode:
 ```bash
 python gitwatch.py --mode service
 ```

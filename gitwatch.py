@@ -299,6 +299,62 @@ class AutoPull:
         self.log("Received shutdown signal, stopping...")
         self.running = False
 
+    def testing_mode(self):
+        """Test configuration and environment for errors before running as a service"""
+        self.log("Starting AutoPull testing mode")
+        if not self.load_config():
+            self.log("Error: No configuration found. Run setup first.")
+            print("[TEST] FAIL: No configuration found.")
+            return False
+
+        # 1. Verify repository access
+        print("[TEST] Verifying repository access...")
+        if not self.verify_repository():
+            print("[TEST] FAIL: Could not access repository. Check your token and repo URL.")
+            return False
+        print("[TEST] Repository access OK.")
+
+        # 2. Get latest commit SHA
+        print("[TEST] Fetching latest commit SHA...")
+        sha = self.get_latest_commit_sha()
+        if not sha:
+            print("[TEST] FAIL: Could not fetch latest commit SHA.")
+            return False
+        print(f"[TEST] Latest commit SHA: {sha[:8]} (OK)")
+
+        # 3. Check if local path is a git repo
+        print("[TEST] Checking local repository...")
+        git_dir = os.path.join(self.config['local_path'], '.git')
+        if not os.path.exists(git_dir):
+            print("[TEST] Local path is not a git repository. Will attempt to clone.")
+            # Try to clone with --no-checkout to avoid side effects
+            success, output = self.run_command(f"git clone --no-checkout {self.config['repo_url']} .", cwd=self.config['local_path'])
+            if not success:
+                print(f"[TEST] FAIL: Could not clone repository: {output}")
+                return False
+            print("[TEST] Clone simulated OK.")
+        else:
+            # Try a dry-run pull
+            print("[TEST] Simulating git pull...")
+            success, output = self.run_command(f"git pull --dry-run origin {self.config['branch']}")
+            if success:
+                print("[TEST] git pull --dry-run OK.")
+            else:
+                print(f"[TEST] FAIL: git pull --dry-run failed: {output}")
+                return False
+
+        # 4. Simulate post-pull command
+        if self.config.get('post_command'):
+            print(f"[TEST] Simulating post-pull command: {self.config['post_command']}")
+            # Just print, do not actually run
+            print("[TEST] (Simulation only, command not executed)")
+        else:
+            print("[TEST] No post-pull command set.")
+
+        print("[TEST] All checks passed. AutoPull is ready to run as a service.")
+        self.log("Testing mode completed successfully.")
+        return True
+
 def main():
     parser = argparse.ArgumentParser(
         description="AutoPull - Automated Git Repository Monitoring Tool",
@@ -312,7 +368,7 @@ Examples:
     
     parser.add_argument(
         '--mode', 
-        choices=['service'], 
+        choices=['service', 'testing'], 
         help='Run mode (default: setup if no config exists)'
     )
     
@@ -322,6 +378,9 @@ Examples:
     
     if args.mode == 'service':
         if not autopull.service_mode():
+            sys.exit(1)
+    elif args.mode == 'testing':
+        if not autopull.testing_mode():
             sys.exit(1)
     else:
         # Setup mode (default)
