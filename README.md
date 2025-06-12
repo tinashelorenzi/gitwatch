@@ -32,8 +32,8 @@
 
 1. **Clone this repository or download `gitwatch.py`:**
    ```bash
-   git clone https://github.com/yourusername/yourrepo.git
-   cd yourrepo
+   git clone https://github.com/tinashelorenzi/gitwatch
+   cd gitwatch
    # or just download gitwatch.py
    ```
 2. **Install Python 3** (if not already installed).
